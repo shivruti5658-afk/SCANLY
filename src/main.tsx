@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {jsPDF} from 'jspdf';
-import {Camera,FileText,Download,Plus,ScanLine,X,Image as ImageIcon,Check,Crop,ChevronLeft,RefreshCw} from 'lucide-react';
+import {Camera,FileText,Download,Plus,ScanLine,X,Image as ImageIcon,Check,Crop,ChevronLeft,RefreshCw,Flashlight,FlashlightOff} from 'lucide-react';
 import './style.css';
 
 type Filter='Original'|'Grayscale'|'B&W';
@@ -23,9 +23,20 @@ function App(){
  const [selected,setSelected]=useState<number|null>(null);
  const [name,setName]=useState('Scanned Document');
  const [flash,setFlash]=useState(false);
+ const [torch,setTorch]=useState(false);
+ const [torchSupported,setTorchSupported]=useState(false);
 
  useEffect(()=>()=>stream.current?.getTracks().forEach(t=>t.stop()),[]);
- const stopCamera=()=>{stream.current?.getTracks().forEach(t=>t.stop());stream.current=null};
+ const stopCamera=()=>{stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;setTorch(false);setTorchSupported(false)};
+ async function toggleTorch(){
+  const track=stream.current?.getVideoTracks()[0];
+  if(!track)return;
+  try{
+   const next=!torch;
+   await (track as any).applyConstraints({advanced:[{torch:next}]});
+   setTorch(next);
+  }catch{alert('Flashlight is not supported by this camera or browser.')}
+ }
 
  async function openCamera(){
   setScanning(true);
@@ -36,6 +47,9 @@ function App(){
     audio:false
    });
    stream.current=s;
+   const track=s.getVideoTracks()[0];
+   const capabilities=(track as any).getCapabilities?.();
+   setTorchSupported(Boolean(capabilities?.torch));
    if(video.current){video.current.srcObject=s;await video.current.play().catch(()=>{})}
   }catch{alert('Camera access was denied or unavailable.');setScanning(false)}
  }
@@ -132,7 +146,7 @@ function App(){
   <div className="export"><div><label>PDF filename</label><input value={name} placeholder="Enter PDF name" onChange={e=>setName(e.target.value)}/></div><button className="primary" onClick={makePdf}><Download size={19}/> Download PDF</button></div>
  </section>}
 
- {scanning&&<section className="camera"><div className="camera-top"><button onClick={()=>{stopCamera();setScanning(false)}}><X/></button><div><span>Multi-document scan</span><small>{pages.length} captured</small></div><button className="finish" disabled={!pages.length} onClick={finishCapture}><Check size={18}/> Finish</button></div><video ref={video} autoPlay playsInline muted/><div className="guide"><span>Align document inside frame</span></div>{flash&&<div className="captured"><Check size={28}/><b>Captured</b><small>{pages.length} page{pages.length!==1?'s':''} ready</small></div>}<div className="capture-bottom"><button className="shutter" onClick={capture}><span/></button><p>Tap to capture · camera stays ready</p></div></section>}
+ {scanning&&<section className="camera"><div className="camera-top"><button onClick={()=>{stopCamera();setScanning(false)}}><X/></button><div><span>Multi-document scan</span><small>{pages.length} captured</small></div><div className="camera-actions">{torchSupported&&<button className={'torch '+(torch?'on':'')} onClick={toggleTorch} title={torch?'Turn flashlight off':'Turn flashlight on'}>{torch?<FlashlightOff size={20}/>:<Flashlight size={20}/>}</button>}<button className="finish" disabled={!pages.length} onClick={finishCapture}><Check size={18}/> Finish</button></div></div><video ref={video} autoPlay playsInline muted/><div className="guide"><span>Align document inside frame</span></div>{flash&&<div className="captured"><Check size={28}/><b>Captured</b><small>{pages.length} page{pages.length!==1?'s':''} ready</small></div>}<div className="capture-bottom"><button className="shutter" onClick={capture}><span/></button><p>Tap to capture · camera stays ready</p></div></section>}
  </main><footer>Scanly · local-first document scanner</footer></div>
 }
 createRoot(document.getElementById('root')!).render(<App/>);
