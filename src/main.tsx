@@ -1,8 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {jsPDF} from 'jspdf';
-import {Camera,FileText,Download,Plus,X,Image as ImageIcon,Check,Crop,ChevronLeft,RefreshCw,Flashlight,FlashlightOff} from 'lucide-react';
-import logo from './LOGO.png';
+import {Camera,FileText,Download,Plus,ScanLine,X,Image as ImageIcon,Check,Crop,ChevronLeft,ChevronRight,RefreshCw,Flashlight,FlashlightOff} from 'lucide-react';
 import './style.css';
 
 type Filter='Original'|'Auto'|'Color+'|'Grayscale'|'B&W'|'Warm';
@@ -35,6 +34,7 @@ function App(){
  const [selected,setSelected]=useState<number|null>(null);
  const [name,setName]=useState('Scanned Document');
  const [flash,setFlash]=useState(false);
+ const [processing,setProcessing]=useState(false);
  const [torch,setTorch]=useState(false);
  const [torchSupported,setTorchSupported]=useState(false);
 
@@ -55,7 +55,7 @@ function App(){
   try{
    // 1080p is a practical balance: sharp scans with a much faster preview/capture pipeline.
    const s=await navigator.mediaDevices.getUserMedia({
-    video:{facingMode:{ideal:'environment'},width:{ideal:1920,max:1920},height:{ideal:1080,max:1080},frameRate:{ideal:30,max:30}},
+    video:{facingMode:{ideal:'environment'},width:{ideal:1920,max:1920},height:{ideal:1080,max:1080},frameRate:{ideal:30,max:30},focusMode:{ideal:'continuous'}} as any,
     audio:false
    });
    stream.current=s;
@@ -66,23 +66,43 @@ function App(){
   }catch{alert('Camera access was denied or unavailable.');setScanning(false)}
  }
 
+ async function enhanceCapture(source:HTMLCanvasElement){
+  // Moderate unsharp mask: improves slight hand-motion softness without destroying text.
+  const maxSide=2200;
+  let scale=Math.min(1,maxSide/Math.max(source.width,source.height));
+  const w=Math.max(1,Math.round(source.width*scale)),h=Math.max(1,Math.round(source.height*scale));
+  const base=document.createElement('canvas');base.width=w;base.height=h;
+  const bctx=base.getContext('2d',{alpha:false})!;
+  bctx.drawImage(source,0,0,w,h);
+  const blurred=document.createElement('canvas');blurred.width=w;blurred.height=h;
+  const blctx=blurred.getContext('2d',{alpha:false})!;
+  blctx.filter='blur(1.15px)';blctx.drawImage(base,0,0);blctx.filter='none';
+  const a=bctx.getImageData(0,0,w,h),b=blctx.getImageData(0,0,w,h);
+  const d=a.data,bd=b.data,amount=.72;
+  for(let i=0;i<d.length;i+=4){
+   d[i]=Math.max(0,Math.min(255,d[i]+amount*(d[i]-bd[i])));
+   d[i+1]=Math.max(0,Math.min(255,d[i+1]+amount*(d[i+1]-bd[i+1])));
+   d[i+2]=Math.max(0,Math.min(255,d[i+2]+amount*(d[i+2]-bd[i+2])));
+  }
+  bctx.putImageData(a,0,0);
+  return new Promise<string>(resolve=>base.toBlob(blob=>resolve(blob?URL.createObjectURL(blob):base.toDataURL('image/jpeg',.98)),'image/jpeg',.98));
+ }
+
  function addPage(src:string,crop:CropBox=fullCrop){
   const p={id:Date.now()+Math.random(),src,filter:'Original' as Filter,crop};
   setPages(ps=>[...ps,p]);setSelected(p.id);
  }
 
- function capture(){
-  const v=video.current;if(!v?.videoWidth)return;
+ async function capture(){
+  const v=video.current;if(!v?.videoWidth||processing)return;
+  setProcessing(true);
   const c=document.createElement('canvas');
   c.width=v.videoWidth;c.height=v.videoHeight;
-  const ctx=c.getContext('2d',{alpha:false,desynchronized:true});
-  ctx?.drawImage(v,0,0);
-  // Fast encoding while retaining high visual quality.
-  c.toBlob(blob=>{
-   if(!blob)return;
-   addPage(URL.createObjectURL(blob),{...guideCrop});
-   setFlash(true);setTimeout(()=>setFlash(false),650);
-  },'image/jpeg',0.96);
+  c.getContext('2d',{alpha:false,desynchronized:true})?.drawImage(v,0,0);
+  // Capture instantly, then improve mild softness in post-processing.
+  const enhanced=await enhanceCapture(c);
+  addPage(enhanced,{...guideCrop});
+  setProcessing(false);setFlash(true);setTimeout(()=>setFlash(false),700);
  }
 
  function finishCapture(){
@@ -98,6 +118,16 @@ function App(){
  }
 
  function update(id:number,patch:Partial<Page>){setPages(ps=>ps.map(p=>p.id===id?{...p,...patch}:p))}
+ function movePage(id:number,direction:-1|1){
+  setPages(ps=>{
+   const index=ps.findIndex(p=>p.id===id);
+   const next=index+direction;
+   if(index<0||next<0||next>=ps.length)return ps;
+   const copy=[...ps];
+   [copy[index],copy[next]]=[copy[next],copy[index]];
+   return copy;
+  });
+ }
  const current=pages.find(p=>p.id===selected)||pages[0];
 
  function beginCrop(h:Handle,e:React.PointerEvent){
@@ -141,26 +171,16 @@ function App(){
   pdf?.save(`${name.trim()||'Scanned Document'}.pdf`);
  }
 
- return <div className="app"><header><div className="brand"><img src={logo} alt="Scanly"/></div><span className="badge">Offline scanner</span></header><main>
- {!scanning&&!editing&&<section className="home-hero">
-   <div className="home-copy">
-    <img className="home-logo" src={logo} alt="Scanly"/>
-    <p className="eyebrow">SMART DOCUMENT SCANNER</p>
-    <h1>Scan documents. Create clean PDFs.</h1>
-    <p className="sub">Capture pages with your camera or upload images. Crop, enhance and combine everything into one polished PDF—right on your device.</p>
-    <div className="actions"><button className="primary" onClick={openCamera}><Camera size={20}/> Start scanning</button><label className="secondary"><ImageIcon size={19}/> Upload images<input type="file" accept="image/*" multiple onChange={upload}/></label></div>
-    <div className="trust-row"><span><Check size={16}/> Private by design</span><span><Check size={16}/> No account needed</span></div>
-   </div>
-   <div className="home-visual" aria-hidden="true"><div className="visual-glow"/><div className="scan-window"><div className="scan-corner tl"/><div className="scan-corner tr"/><div className="scan-corner bl"/><div className="scan-corner br"/><FileText size={88}/><div className="scan-line"/><div className="document-lines"><i/><i/><i/><i/></div></div><div className="feature-chip crop-chip"><Crop size={17}/> Smart crop</div><div className="feature-chip pdf-chip"><Download size={17}/> PDF ready</div></div>
- </section>}
+ return <div className="app"><header><div className="brand"><ScanLine/><span>Scanly</span></div><span className="badge">Offline scanner</span></header><main>
+ {!scanning&&!editing&&<section className="hero"><div><p className="eyebrow">MULTI-PAGE DOCUMENT SCANNER</p><h1>Capture everything first. Edit afterward.</h1><p className="sub">Fast multi-page scanning with visual crop controls and clean PDF export.</p><div className="actions"><button className="primary" onClick={openCamera}><Camera size={20}/> Start scanning</button><label className="secondary"><ImageIcon size={19}/> Add images<input type="file" accept="image/*" multiple onChange={upload}/></label></div></div><div className="hero-card"><FileText size={42}/><strong>Batch document scanner</strong><span>Everything stays on your device.</span></div></section>}
 
  {editing&&!scanning&&current&&<section className="editor">
   <div className="editor-head compact-editor-head">
-   <div className="mobile-brand-line"><img src={logo} alt="Scanly"/><span className="page-count">{pages.length} page{pages.length!==1?'s':''}</span></div>
+   <div className="mobile-brand-line"><ScanLine size={21}/><strong>Scanly</strong><span className="page-count">{pages.length} page{pages.length!==1?'s':''}</span></div>
    <div className="editor-actions"><button className="secondary small" onClick={openCamera}><Plus size={17}/><span>Add pages</span></button><button className="secondary small" onClick={()=>setEditing(false)}><ChevronLeft size={17}/><span>Back</span></button></div>
   </div>
   <div className="simple-editor">
-   <div className="page-strip">{pages.map((p,i)=><button key={p.id} className={'page-tab '+(p.id===selected?'active':'')} onClick={()=>setSelected(p.id)}><img src={p.src}/><span>{i+1}</span></button>)}</div>
+   <div className="page-strip">{pages.map((p,i)=><div key={p.id} className={'page-item '+(p.id===selected?'active':'')}><button className="page-tab" onClick={()=>setSelected(p.id)} aria-label={`Select page ${i+1}`}><img src={p.src}/><span>{i+1}</span></button>{p.id===selected&&pages.length>1&&<div className="page-order-controls"><button onClick={()=>movePage(p.id,-1)} disabled={i===0} aria-label="Move page earlier"><ChevronLeft size={14}/></button><button onClick={()=>movePage(p.id,1)} disabled={i===pages.length-1} aria-label="Move page later"><ChevronRight size={14}/></button></div>}</div>)}</div>
    <div className="preview-area"><div ref={cropArea} className="crop-stage" onPointerMove={moveCrop} onPointerUp={endCrop} onPointerCancel={endCrop}>
     <img className="stationary-image" src={current.src} style={{filter:filterStyle(current.filter)}}/>
     <div className="crop-mask" style={{left:`${current.crop.x}%`,top:`${current.crop.y}%`,width:`${current.crop.w}%`,height:`${current.crop.h}%`}}><div className="crop-box">{(['tl','tr','bl','br','t','b','l','r'] as Handle[]).map(h=><span key={h} className={'handle '+h} onPointerDown={e=>beginCrop(h,e)}/>)}</div></div>
@@ -170,7 +190,7 @@ function App(){
   <div className="export"><div><label>PDF filename</label><input value={name} placeholder="Enter PDF name" onChange={e=>setName(e.target.value)}/></div><button className="primary" onClick={makePdf}><Download size={19}/> Download PDF</button></div>
  </section>}
 
- {scanning&&<section className="camera"><div className="camera-top"><button onClick={()=>{stopCamera();setScanning(false)}}><X/></button><div><span>Multi-document scan</span><small>{pages.length} captured</small></div><div className="camera-actions">{torchSupported&&<button className={'torch '+(torch?'on':'')} onClick={toggleTorch} title={torch?'Turn flashlight off':'Turn flashlight on'}>{torch?<FlashlightOff size={20}/>:<Flashlight size={20}/>}</button>}<button className="finish" disabled={!pages.length} onClick={finishCapture}><Check size={18}/> Finish</button></div></div><video ref={video} autoPlay playsInline muted/><div className="guide"><span>Align document inside frame</span></div>{flash&&<div className="captured"><Check size={28}/><b>Captured</b><small>{pages.length} page{pages.length!==1?'s':''} ready</small></div>}<div className="capture-bottom"><button className="shutter" onClick={capture}><span/></button><p>Tap to capture · camera stays ready</p></div></section>}
+ {scanning&&<section className="camera"><div className="camera-top"><button onClick={()=>{stopCamera();setScanning(false)}}><X/></button><div><span>Multi-document scan</span><small>{pages.length} captured</small></div><div className="camera-actions">{torchSupported&&<button className={'torch '+(torch?'on':'')} onClick={toggleTorch} title={torch?'Turn flashlight off':'Turn flashlight on'}>{torch?<FlashlightOff size={20}/>:<Flashlight size={20}/>}</button>}<button className="finish" disabled={!pages.length} onClick={finishCapture}><Check size={18}/> Finish</button></div></div><video ref={video} autoPlay playsInline muted/><div className="guide"><span>Align document inside frame</span></div>{processing&&<div className="processing-scan"><span></span>Enhancing scan…</div>}{flash&&<div className="captured"><Check size={28}/><b>Captured</b><small>{pages.length} page{pages.length!==1?'s':''} ready</small></div>}<div className="capture-bottom"><button className="shutter" onClick={capture} aria-label="Capture document" disabled={processing}><span/></button><p>{processing?'Enhancing captured scan…':'Tap to capture · automatic clarity enhancement'}</p></div></section>}
  </main><footer>Scanly · local-first document scanner</footer></div>
 }
 createRoot(document.getElementById('root')!).render(<App/>);
