@@ -89,6 +89,9 @@ function App() {
   const [torchSupported, setTorchSupported] = useState(false);
   const [recent, setRecent] = useState<SavedScan[]>([]);
   const [generatedPdf, setGeneratedPdf] = useState<File | null>(null);
+  const [generatedSequence, setGeneratedSequence] = useState<string | null>(
+    null,
+  );
   const fileSequence = useRef(1);
   const [nextFileSequence, setNextFileSequence] = useState(1);
 
@@ -171,6 +174,7 @@ function App() {
     setProcessing(false);
     setFlash(false);
     setGeneratedPdf(null);
+    setGeneratedSequence(null);
     fileSequence.current = 1;
     setNextFileSequence(1);
   }
@@ -556,6 +560,7 @@ function App() {
         type: "application/pdf",
       });
       setGeneratedPdf(pdfFile);
+      setGeneratedSequence(sequence);
       const url = URL.createObjectURL(pdfFile);
 
       const a = document.createElement("a");
@@ -591,7 +596,15 @@ function App() {
 
   async function shareGeneratedPdf() {
     if (!generatedPdf) return;
-    const shareData = { title: generatedPdf.name, files: [generatedPdf] };
+    const safeName = (name.trim() || "Scanned Document")
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\.pdf$/i, "");
+    const filename = `${safeName}-${generatedSequence ?? "1"}.pdf`;
+    const namedPdf =
+      generatedPdf.name === filename
+        ? generatedPdf
+        : new File([generatedPdf], filename, { type: "application/pdf" });
+    const shareData = { title: filename, files: [namedPdf] };
     if (navigator.share && navigator.canShare?.(shareData)) {
       try {
         await navigator.share(shareData);
