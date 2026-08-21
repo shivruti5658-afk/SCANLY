@@ -583,14 +583,13 @@ function App() {
   function openGeneratedPdf() {
     if (!generatedPdf) return;
     const url = URL.createObjectURL(generatedPdf);
-    const popup = window.open(url, "_blank", "noopener");
-    if (!popup) {
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.click();
-    }
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
