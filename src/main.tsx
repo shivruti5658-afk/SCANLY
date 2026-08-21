@@ -1,16 +1,28 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {jsPDF} from 'jspdf';
-import {Camera,FileText,Download,Plus,ScanLine,X,Image as ImageIcon,Check,Crop,ChevronLeft,RefreshCw,Flashlight,FlashlightOff} from 'lucide-react';
+import {Camera,FileText,Download,Plus,X,Image as ImageIcon,Check,Crop,ChevronLeft,RefreshCw,Flashlight,FlashlightOff} from 'lucide-react';
+import logo from './LOGO.png';
 import './style.css';
 
-type Filter='Original'|'Grayscale'|'B&W';
+type Filter='Original'|'Auto'|'Color+'|'Grayscale'|'B&W'|'Warm';
 type CropBox={x:number;y:number;w:number;h:number};
 type Page={id:number;src:string;filter:Filter;crop:CropBox};
 type Handle='tl'|'tr'|'bl'|'br'|'t'|'b'|'l'|'r';
-const filters:Filter[]=['Original','Grayscale','B&W'];
+const filters:Filter[]=['Original','Auto','Color+','Grayscale','B&W','Warm'];
 const fullCrop={x:0,y:0,w:100,h:100};
 const guideCrop={x:8,y:14,w:84,h:72};
+
+function filterStyle(filter:Filter){
+ switch(filter){
+  case 'Auto': return 'contrast(1.18) brightness(1.06) saturate(1.05)';
+  case 'Color+': return 'contrast(1.12) brightness(1.04) saturate(1.32)';
+  case 'Grayscale': return 'grayscale(1) contrast(1.12) brightness(1.06)';
+  case 'B&W': return 'grayscale(1) contrast(3.2) brightness(1.14)';
+  case 'Warm': return 'sepia(.16) saturate(1.15) contrast(1.06) brightness(1.03)';
+  default: return 'none';
+ }
+}
 
 function App(){
  const video=useRef<HTMLVideoElement>(null);
@@ -118,8 +130,7 @@ function App(){
    const canvas=document.createElement('canvas');
    canvas.width=Math.max(1,Math.round(sw));canvas.height=Math.max(1,Math.round(sh));
    const ctx=canvas.getContext('2d')!;
-   if(p.filter==='Grayscale')ctx.filter='grayscale(1)';
-   if(p.filter==='B&W')ctx.filter='grayscale(1) contrast(2.5) brightness(1.12)';
+   ctx.filter=filterStyle(p.filter);
    ctx.drawImage(img,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
    // Each PDF page has the exact cropped image aspect ratio, so there is no white border.
    const w=canvas.width,h=canvas.height;
@@ -130,15 +141,18 @@ function App(){
   pdf?.save(`${name.trim()||'Scanned Document'}.pdf`);
  }
 
- return <div className="app"><header><div className="brand"><ScanLine/><span>Scanly</span></div><span className="badge">Offline scanner</span></header><main>
+ return <div className="app"><header><div className="brand"><img src={logo} alt="Scanly"/></div><span className="badge">Offline scanner</span></header><main>
  {!scanning&&!editing&&<section className="hero"><div><p className="eyebrow">MULTI-PAGE DOCUMENT SCANNER</p><h1>Capture everything first. Edit afterward.</h1><p className="sub">Fast multi-page scanning with visual crop controls and clean PDF export.</p><div className="actions"><button className="primary" onClick={openCamera}><Camera size={20}/> Start scanning</button><label className="secondary"><ImageIcon size={19}/> Add images<input type="file" accept="image/*" multiple onChange={upload}/></label></div></div><div className="hero-card"><FileText size={42}/><strong>Batch document scanner</strong><span>Everything stays on your device.</span></div></section>}
 
  {editing&&!scanning&&current&&<section className="editor">
-  <div className="editor-head"><div><p className="eyebrow">EDIT DOCUMENT</p><h2>{pages.length} page{pages.length!==1?'s':''}</h2></div><div className="editor-actions"><button className="secondary small" onClick={openCamera}><Plus size={17}/> Add pages</button><button className="secondary small" onClick={()=>setEditing(false)}><ChevronLeft size={17}/> Back</button></div></div>
+  <div className="editor-head compact-editor-head">
+   <div className="mobile-brand-line"><img src={logo} alt="Scanly"/><span className="page-count">{pages.length} page{pages.length!==1?'s':''}</span></div>
+   <div className="editor-actions"><button className="secondary small" onClick={openCamera}><Plus size={17}/><span>Add pages</span></button><button className="secondary small" onClick={()=>setEditing(false)}><ChevronLeft size={17}/><span>Back</span></button></div>
+  </div>
   <div className="simple-editor">
    <div className="page-strip">{pages.map((p,i)=><button key={p.id} className={'page-tab '+(p.id===selected?'active':'')} onClick={()=>setSelected(p.id)}><img src={p.src}/><span>{i+1}</span></button>)}</div>
    <div className="preview-area"><div ref={cropArea} className="crop-stage" onPointerMove={moveCrop} onPointerUp={endCrop} onPointerCancel={endCrop}>
-    <img className="stationary-image" src={current.src} style={{filter:current.filter==='Grayscale'?'grayscale(1)':current.filter==='B&W'?'grayscale(1) contrast(2.5) brightness(1.12)':'none'}}/>
+    <img className="stationary-image" src={current.src} style={{filter:filterStyle(current.filter)}}/>
     <div className="crop-mask" style={{left:`${current.crop.x}%`,top:`${current.crop.y}%`,width:`${current.crop.w}%`,height:`${current.crop.h}%`}}><div className="crop-box">{(['tl','tr','bl','br','t','b','l','r'] as Handle[]).map(h=><span key={h} className={'handle '+h} onPointerDown={e=>beginCrop(h,e)}/>)}</div></div>
    </div></div>
    <div className="edit-controls"><div className="crop-label"><Crop size={17}/> Drag corners or edges to crop</div><button className="reset-crop" onClick={()=>update(current.id,{crop:{...fullCrop}})}><RefreshCw size={16}/> Reset</button><div className="filter-buttons">{filters.map(f=><button key={f} className={current.filter===f?'chosen':''} onClick={()=>update(current.id,{filter:f})}>{f}</button>)}</div></div>
