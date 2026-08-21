@@ -24,7 +24,6 @@ import {
   RotateCcw,
   RotateCw,
   Type,
-  Eye,
 } from "lucide-react";
 import "./style.css";
 
@@ -88,8 +87,7 @@ function App() {
   const [torch, setTorch] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [recent, setRecent] = useState<SavedScan[]>([]);
-  const [pdfPreview, setPdfPreview] = useState<string | null>(null);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [generatedPdf, setGeneratedPdf] = useState<File | null>(null);
   const fileSequence = useRef(1);
   const [nextFileSequence, setNextFileSequence] = useState(1);
 
@@ -104,10 +102,6 @@ function App() {
   useEffect(() => {
     window.history.replaceState({ scanlyScreen: "home" }, "");
     const handleDeviceBack = () => {
-      if (showPdfPreview) {
-        setShowPdfPreview(false);
-        return;
-      }
       if (scanning) {
         stopCamera();
         setScanning(false);
@@ -120,7 +114,7 @@ function App() {
     };
     window.addEventListener("popstate", handleDeviceBack);
     return () => window.removeEventListener("popstate", handleDeviceBack);
-  }, [editing, scanning, showPdfPreview]);
+  }, [editing, scanning]);
 
   const stopCamera = () => {
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -167,6 +161,27 @@ function App() {
       alert("Camera access was denied or unavailable.");
       setScanning(false);
     }
+  }
+
+  function resetActiveDocument() {
+    setPages([]);
+    setSelected(null);
+    setName("Scanned Document");
+    setProcessing(false);
+    setFlash(false);
+    setGeneratedPdf(null);
+    fileSequence.current = 1;
+    setNextFileSequence(1);
+  }
+
+  async function startFreshScan() {
+    resetActiveDocument();
+    await openCamera();
+  }
+
+  function startFreshImport(e: React.ChangeEvent<HTMLInputElement>) {
+    resetActiveDocument();
+    upload(e);
   }
 
   async function enhanceCapture(source: HTMLCanvasElement) {
@@ -535,22 +550,21 @@ function App() {
       const safeName = (name.trim() || "Scanned Document")
         .replace(/[\\/:*?"<>|]+/g, "-")
         .replace(/\.pdf$/i, "");
-      // A typed Blob ensures the browser recognizes this as an embeddable PDF.
-      const blob = new Blob([pdf.output("arraybuffer")], {
+      const filename = `${safeName}-${sequence}.pdf`;
+      const pdfFile = new File([pdf.output("arraybuffer")], filename, {
         type: "application/pdf",
       });
-      if (pdfPreview) URL.revokeObjectURL(pdfPreview);
-      const url = URL.createObjectURL(blob);
-      setPdfPreview(url);
-      setShowPdfPreview(true);
+      setGeneratedPdf(pdfFile);
+      const url = URL.createObjectURL(pdfFile);
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${safeName}-${sequence}.pdf`;
+      a.download = filename;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
       void saveToHistory();
     } catch (error) {
       console.error("PDF generation failed:", error);
@@ -558,6 +572,30 @@ function App() {
         `PDF generation failed: ${error instanceof Error ? error.message : "Please try again."}`,
       );
     }
+  }
+
+  async function openGeneratedPdfInApp() {
+    if (!generatedPdf) return;
+    const shareData = { title: generatedPdf.name, files: [generatedPdf] };
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+      }
+    }
+
+    const url = URL.createObjectURL(generatedPdf);
+    const popup = window.open(url, "_blank", "noopener");
+    if (!popup) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = generatedPdf.name;
+      a.click();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   return (
@@ -687,7 +725,7 @@ function App() {
                   <div className="actions">
                     <button
                       className="primary home-primary"
-                      onClick={openCamera}
+                      onClick={startFreshScan}
                     >
                       <Camera size={20} /> Start scanning
                     </button>
@@ -697,7 +735,7 @@ function App() {
                         type="file"
                         accept="image/*"
                         multiple
-                        onChange={upload}
+                        onChange={startFreshImport}
                       />
                     </label>
                   </div>
@@ -994,12 +1032,12 @@ function App() {
                   <button className="primary" onClick={makePdf}>
                     <Download size={19} /> Download PDF
                   </button>
-                  {pdfPreview && (
+                  {generatedPdf && (
                     <button
                       className="secondary"
-                      onClick={() => setShowPdfPreview(true)}
+                      onClick={openGeneratedPdfInApp}
                     >
-                      <Eye size={18} /> View PDF
+                      <FileText size={18} /> Open in app
                     </button>
                   )}
                 </div>
@@ -1082,39 +1120,6 @@ function App() {
                 </p>
               </div>
             </section>
-          )}
-          {pdfPreview && showPdfPreview && (
-            <div
-              className="pdf-preview-overlay"
-              role="dialog"
-              aria-modal="true"
-            >
-              <div className="pdf-preview-card">
-                <div className="pdf-preview-header">
-                  <strong>PDF Preview</strong>
-                  <a
-                    className="pdf-preview-open"
-                    href={pdfPreview}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open PDF
-                  </a>
-                  <button
-                    onClick={() => setShowPdfPreview(false)}
-                    aria-label="Close PDF preview"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-                <iframe
-                  key={pdfPreview}
-                  src={pdfPreview}
-                  title="PDF Preview"
-                  className="pdf-preview-frame"
-                />
-              </div>
-            </div>
           )}
         </main>
         <footer>Scanly · local-first document scanner</footer>
