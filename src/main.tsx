@@ -574,8 +574,19 @@ function App() {
     }
   }
 
-  function openGeneratedPdf() {
+  async function chooseAppForPdf() {
     if (!generatedPdf) return;
+    const shareData = { title: generatedPdf.name, files: [generatedPdf] };
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+      }
+    }
+
     const url = URL.createObjectURL(generatedPdf);
     const popup = window.open(url, "_blank", "noopener");
     if (!popup) {
@@ -1025,9 +1036,9 @@ function App() {
                   {generatedPdf && (
                     <button
                       className="secondary"
-                      onClick={openGeneratedPdf}
+                      onClick={chooseAppForPdf}
                     >
-                      <FileText size={18} /> Open PDF
+                      <FileText size={18} /> Open with app
                     </button>
                   )}
                 </div>
