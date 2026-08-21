@@ -24,6 +24,7 @@ import {
   RotateCcw,
   RotateCw,
   Type,
+  Share2,
 } from "lucide-react";
 import "./style.css";
 
@@ -574,19 +575,8 @@ function App() {
     }
   }
 
-  async function chooseAppForPdf() {
+  function openGeneratedPdf() {
     if (!generatedPdf) return;
-    const shareData = { title: generatedPdf.name, files: [generatedPdf] };
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-      }
-    }
-
     const url = URL.createObjectURL(generatedPdf);
     const popup = window.open(url, "_blank", "noopener");
     if (!popup) {
@@ -597,6 +587,22 @@ function App() {
       a.click();
     }
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  async function shareGeneratedPdf() {
+    if (!generatedPdf) return;
+    const shareData = { title: generatedPdf.name, files: [generatedPdf] };
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          openGeneratedPdf();
+        }
+      }
+      return;
+    }
+    openGeneratedPdf();
   }
 
   return (
@@ -678,7 +684,7 @@ function App() {
 
         .pdf-actions {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .pdf-actions button {
@@ -1036,9 +1042,15 @@ function App() {
                   {generatedPdf && (
                     <button
                       className="secondary"
-                      onClick={chooseAppForPdf}
+                      onClick={openGeneratedPdf}
                     >
-                      <FileText size={18} /> Open with app
+                      <FileText size={18} /> Open PDF
+                    </button>
+                    <button
+                      className="secondary"
+                      onClick={shareGeneratedPdf}
+                    >
+                      <Share2 size={18} /> Share PDF
                     </button>
                   )}
                 </div>
