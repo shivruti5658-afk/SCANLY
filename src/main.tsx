@@ -535,7 +535,10 @@ function App() {
       const safeName = (name.trim() || "Scanned Document")
         .replace(/[\\/:*?"<>|]+/g, "-")
         .replace(/\.pdf$/i, "");
-      const blob = pdf.output("blob");
+      // A typed Blob ensures the browser recognizes this as an embeddable PDF.
+      const blob = new Blob([pdf.output("arraybuffer")], {
+        type: "application/pdf",
+      });
       if (pdfPreview) URL.revokeObjectURL(pdfPreview);
       const url = URL.createObjectURL(blob);
       setPdfPreview(url);
@@ -605,6 +608,15 @@ function App() {
         height: 36px;
         display: grid;
         place-items: center;
+      }
+
+      .pdf-preview-open {
+        color: #4263eb;
+        font-size: 13px;
+        font-weight: 750;
+        text-decoration: none;
+        margin-left: auto;
+        margin-right: 12px;
       }
 
       .pdf-preview-frame {
@@ -975,8 +987,7 @@ function App() {
                     onFocus={(e) => e.currentTarget.select()}
                   />
                   <small>
-                    {name.trim() || "Scanned Document"}-
-                    {nextFileSequence}.pdf
+                    {name.trim() || "Scanned Document"}-{nextFileSequence}.pdf
                   </small>
                 </div>
                 <div className="pdf-actions">
@@ -1081,6 +1092,14 @@ function App() {
               <div className="pdf-preview-card">
                 <div className="pdf-preview-header">
                   <strong>PDF Preview</strong>
+                  <a
+                    className="pdf-preview-open"
+                    href={pdfPreview}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open PDF
+                  </a>
                   <button
                     onClick={() => setShowPdfPreview(false)}
                     aria-label="Close PDF preview"
@@ -1089,6 +1108,7 @@ function App() {
                   </button>
                 </div>
                 <iframe
+                  key={pdfPreview}
                   src={pdfPreview}
                   title="PDF Preview"
                   className="pdf-preview-frame"
