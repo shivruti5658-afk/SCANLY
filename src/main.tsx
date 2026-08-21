@@ -89,6 +89,7 @@ function App() {
   const [torchSupported, setTorchSupported] = useState(false);
   const [recent, setRecent] = useState<SavedScan[]>([]);
   const [pdfPreview, setPdfPreview] = useState<string | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const fileSequence = useRef(1);
   const [nextFileSequence, setNextFileSequence] = useState(1);
 
@@ -103,8 +104,8 @@ function App() {
   useEffect(() => {
     window.history.replaceState({ scanlyScreen: "home" }, "");
     const handleDeviceBack = () => {
-      if (pdfPreview) {
-        setPdfPreview(null);
+      if (showPdfPreview) {
+        setShowPdfPreview(false);
         return;
       }
       if (scanning) {
@@ -119,7 +120,7 @@ function App() {
     };
     window.addEventListener("popstate", handleDeviceBack);
     return () => window.removeEventListener("popstate", handleDeviceBack);
-  }, [editing, pdfPreview, scanning]);
+  }, [editing, scanning, showPdfPreview]);
 
   const stopCamera = () => {
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -538,6 +539,7 @@ function App() {
       if (pdfPreview) URL.revokeObjectURL(pdfPreview);
       const url = URL.createObjectURL(blob);
       setPdfPreview(url);
+      setShowPdfPreview(true);
 
       const a = document.createElement("a");
       a.href = url;
@@ -984,7 +986,7 @@ function App() {
                   {pdfPreview && (
                     <button
                       className="secondary"
-                      onClick={() => setPdfPreview(pdfPreview)}
+                      onClick={() => setShowPdfPreview(true)}
                     >
                       <Eye size={18} /> View PDF
                     </button>
@@ -1070,7 +1072,7 @@ function App() {
               </div>
             </section>
           )}
-          {pdfPreview && (
+          {pdfPreview && showPdfPreview && (
             <div
               className="pdf-preview-overlay"
               role="dialog"
@@ -1080,7 +1082,7 @@ function App() {
                 <div className="pdf-preview-header">
                   <strong>PDF Preview</strong>
                   <button
-                    onClick={() => setPdfPreview(null)}
+                    onClick={() => setShowPdfPreview(false)}
                     aria-label="Close PDF preview"
                   >
                     <X size={20} />
