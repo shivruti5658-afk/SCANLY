@@ -89,6 +89,8 @@ function App() {
   const [torchSupported, setTorchSupported] = useState(false);
   const [recent, setRecent] = useState<SavedScan[]>([]);
   const [pdfPreview, setPdfPreview] = useState<string | null>(null);
+  const fileSequence = useRef(1);
+  const [nextFileSequence, setNextFileSequence] = useState(1);
 
   useEffect(() => {
     try {
@@ -97,6 +99,28 @@ function App() {
     } catch {}
     return () => stream.current?.getTracks().forEach((t) => t.stop());
   }, []);
+
+  useEffect(() => {
+    window.history.replaceState({ scanlyScreen: "home" }, "");
+    const handleDeviceBack = () => {
+      if (pdfPreview) {
+        setPdfPreview(null);
+        return;
+      }
+      if (scanning) {
+        stopCamera();
+        setScanning(false);
+        return;
+      }
+      if (editing) {
+        setEditing(false);
+        setSelected(null);
+      }
+    };
+    window.addEventListener("popstate", handleDeviceBack);
+    return () => window.removeEventListener("popstate", handleDeviceBack);
+  }, [editing, pdfPreview, scanning]);
+
   const stopCamera = () => {
     stream.current?.getTracks().forEach((t) => t.stop());
     stream.current = null;
@@ -116,6 +140,7 @@ function App() {
   }
 
   async function openCamera() {
+    window.history.pushState({ scanlyScreen: "camera" }, "");
     setScanning(true);
     try {
       // 1080p is a practical balance: sharp scans with a much faster preview/capture pipeline.
@@ -225,6 +250,7 @@ function App() {
     stopCamera();
     setScanning(false);
     if (pages.length) {
+      window.history.replaceState({ scanlyScreen: "editor" }, "");
       setEditing(true);
       setSelected(pages[pages.length - 1].id);
     }
@@ -237,7 +263,10 @@ function App() {
       r.onload = () => addPage(String(r.result));
       r.readAsDataURL(f);
     });
-    if (files.length) setTimeout(() => setEditing(true), 50);
+    if (files.length) {
+      if (!editing) window.history.pushState({ scanlyScreen: "editor" }, "");
+      setTimeout(() => setEditing(true), 50);
+    }
     e.target.value = "";
   }
 
@@ -398,6 +427,7 @@ function App() {
   }
   function openSaved(item: SavedScan) {
     stopCamera();
+    window.history.pushState({ scanlyScreen: "editor" }, "");
     setPages(item.pages.map((p) => ({ ...p, id: Date.now() + Math.random() })));
     setName(item.name);
     setSelected(null);
@@ -413,6 +443,8 @@ function App() {
 
   async function makePdf() {
     if (!pages.length) return;
+    const sequence = String(fileSequence.current++);
+    setNextFileSequence(fileSequence.current);
     try {
       let pdf: jsPDF | undefined;
       for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
@@ -509,7 +541,7 @@ function App() {
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${safeName}.pdf`;
+      a.download = `${safeName}-${sequence}.pdf`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
@@ -940,7 +972,10 @@ function App() {
                     onChange={(e) => setName(e.target.value)}
                     onFocus={(e) => e.currentTarget.select()}
                   />
-                  <small>{name.trim() || "Scanned Document"}.pdf</small>
+                  <small>
+                    {name.trim() || "Scanned Document"}-
+                    {nextFileSequence}.pdf
+                  </small>
                 </div>
                 <div className="pdf-actions">
                   <button className="primary" onClick={makePdf}>
