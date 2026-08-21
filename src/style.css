@@ -160,3 +160,18 @@
 .camera .guide{inset:auto;left:50%;top:50%;width:min(82vw,calc((100dvh - 220px)*.7071));height:auto;aspect-ratio:1/1.4142;transform:translate(-50%,-50%)}
 .camera .guide span{top:-31px;padding:6px 10px;border:1px solid #ffffff2e;border-radius:999px;background:#05070baa;font-size:11px;font-weight:750;letter-spacing:.04em}
 @media(max-width:520px){.camera .guide{width:min(82vw,calc((100dvh - 210px)*.7071))}}
+
+/* Give the filename field room instead of squeezing it beside export actions. */
+.export .filename-box{min-width:0}
+@media(max-width:800px){
+ .export{display:flex!important;flex-direction:column;align-items:stretch;gap:14px;padding:16px}
+ .export .filename-box,.export .pdf-actions{width:100%}
+ .export .pdf-actions{display:flex;gap:9px}
+ .export .pdf-actions button{flex:1;min-width:0}
+ .export input{min-height:46px;padding:12px}
+}
+@media(max-width:520px){
+ .export{padding:14px;gap:12px}
+ .filename-box label{flex-wrap:wrap;row-gap:3px}
+ .export .pdf-actions{display:grid;grid-template-columns:1fr 1fr}
+}
