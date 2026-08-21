@@ -142,7 +142,17 @@ function App(){
  }
 
  return <div className="app"><header><div className="brand"><img src={logo} alt="Scanly"/></div><span className="badge">Offline scanner</span></header><main>
- {!scanning&&!editing&&<section className="hero"><div><img className="home-logo" src={logo} alt="Scanly"/><p className="eyebrow">MULTI-PAGE DOCUMENT SCANNER</p><h1>Capture everything first. Edit afterward.</h1><p className="sub">Fast multi-page scanning with visual crop controls and clean PDF export.</p><div className="actions"><button className="primary" onClick={openCamera}><Camera size={20}/> Start scanning</button><label className="secondary"><ImageIcon size={19}/> Add images<input type="file" accept="image/*" multiple onChange={upload}/></label></div></div><div className="hero-card"><FileText size={42}/><strong>Batch document scanner</strong><span>Everything stays on your device.</span></div></section>}
+ {!scanning&&!editing&&<section className="home-hero">
+   <div className="home-copy">
+    <img className="home-logo" src={logo} alt="Scanly"/>
+    <p className="eyebrow">SMART DOCUMENT SCANNER</p>
+    <h1>Scan documents. Create clean PDFs.</h1>
+    <p className="sub">Capture pages with your camera or upload images. Crop, enhance and combine everything into one polished PDF—right on your device.</p>
+    <div className="actions"><button className="primary" onClick={openCamera}><Camera size={20}/> Start scanning</button><label className="secondary"><ImageIcon size={19}/> Upload images<input type="file" accept="image/*" multiple onChange={upload}/></label></div>
+    <div className="trust-row"><span><Check size={16}/> Private by design</span><span><Check size={16}/> No account needed</span></div>
+   </div>
+   <div className="home-visual" aria-hidden="true"><div className="visual-glow"/><div className="scan-window"><div className="scan-corner tl"/><div className="scan-corner tr"/><div className="scan-corner bl"/><div className="scan-corner br"/><FileText size={88}/><div className="scan-line"/><div className="document-lines"><i/><i/><i/><i/></div></div><div className="feature-chip crop-chip"><Crop size={17}/> Smart crop</div><div className="feature-chip pdf-chip"><Download size={17}/> PDF ready</div></div>
+ </section>}
 
  {editing&&!scanning&&current&&<section className="editor">
   <div className="editor-head compact-editor-head">
