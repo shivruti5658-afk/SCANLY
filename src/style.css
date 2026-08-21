@@ -6,3 +6,23 @@
 
 .reset-crop{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #dfe4ec;background:#fff;border-radius:9px;padding:9px;margin:8px 0 16px;cursor:pointer}.camera-top{padding-top:max(15px,env(safe-area-inset-top));}.camera{padding-bottom:env(safe-area-inset-bottom)}
 @media(max-width:700px){header{padding:0 18px;height:62px}main{padding:20px 12px}.hero{gap:22px}.hero-card{padding:24px}.actions{flex-direction:column}.actions>*{justify-content:center;width:100%}.editor{margin-top:0}.editor-head{padding:0 2px}.editor-head h2{font-size:23px}.editor-layout{display:flex;flex-direction:column;gap:10px;min-height:0}.page-list{order:1;display:flex;flex-direction:row;overflow-x:auto;padding:8px;gap:8px;max-height:none}.page-tab{flex:0 0 92px}.page-tab img{height:70px}.preview-area{order:2;padding:8px;min-height:52vh}.preview-frame{height:min(62vh,560px);width:100%;border-radius:12px}.tools{order:3;padding:14px}.tools label{width:100%;margin:10px 0}.filter-buttons{display:grid;grid-template-columns:repeat(3,1fr)}.filter-buttons button{padding:10px 4px}.export{order:4;margin-top:10px;padding:14px;position:sticky;bottom:0;background:#fff;z-index:4;box-shadow:0 -8px 25px #17203310}.export .primary{justify-content:center;width:100%}.camera-top{padding-left:14px;padding-right:14px}.guide{inset:14% 4%!important}.capture-bottom{height:145px}.capture-bottom p{font-size:11px;padding:0 18px;text-align:center}.shutter{width:68px!important;height:68px!important}.camera video{object-position:center}.badge{display:none}}
+
+@media(max-width:390px){
+  h1{font-size:34px;letter-spacing:-1.4px}
+  .sub{font-size:16px}
+  .primary,.secondary{padding:12px 14px;font-size:13px}
+  .editor-actions{gap:7px}
+  .editor-actions .small{padding:9px 10px;font-size:12px}
+  .editor-actions svg{width:15px}
+  .page-tab{flex-basis:84px}
+  .preview-area{min-height:48vh}
+  .preview-frame{height:54vh}
+  .camera-top>div{max-width:145px}
+  .camera-top small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:145px}
+}
+
+@media(hover:none) and (pointer:coarse){
+  button,.page-tab,.filter-buttons button{min-height:44px}
+  .page-tab{min-height:0}
+  input[type="range"]{min-height:30px}
+}
