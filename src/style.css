@@ -155,3 +155,8 @@
 .camera-finish:not(:disabled):active{transform:translateY(0) scale(.97)}
 .camera-finish:disabled{background:rgba(29,37,60,.8)!important;border-color:rgba(255,255,255,.15)!important;color:rgba(255,255,255,.5);box-shadow:none;cursor:not-allowed}
 @media(max-width:520px){.camera-finish{right:16px;bottom:max(22px,env(safe-area-inset-bottom));min-height:46px;padding:0 15px;border-radius:14px;font-size:13px}}
+
+/* Portrait A4 guide: 210 × 297 mm (1 : √2) */
+.camera .guide{inset:auto;left:50%;top:50%;width:min(82vw,calc((100dvh - 220px)*.7071));height:auto;aspect-ratio:1/1.4142;transform:translate(-50%,-50%)}
+.camera .guide span{top:-31px;padding:6px 10px;border:1px solid #ffffff2e;border-radius:999px;background:#05070baa;font-size:11px;font-weight:750;letter-spacing:.04em}
+@media(max-width:520px){.camera .guide{width:min(82vw,calc((100dvh - 210px)*.7071))}}

@@ -994,7 +994,7 @@ function App() {
               </div>
               <video ref={video} autoPlay playsInline muted />
               <div className="guide">
-                <span>Align document inside frame</span>
+                <span>A4 document area</span>
               </div>
               {processing && (
                 <div className="processing-scan">
