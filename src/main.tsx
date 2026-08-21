@@ -1040,18 +1040,14 @@ function App() {
                     <Download size={19} /> Download PDF
                   </button>
                   {generatedPdf && (
-                    <button
-                      className="secondary"
-                      onClick={openGeneratedPdf}
-                    >
-                      <FileText size={18} /> Open PDF
-                    </button>
-                    <button
-                      className="secondary"
-                      onClick={shareGeneratedPdf}
-                    >
-                      <Share2 size={18} /> Share PDF
-                    </button>
+                    <>
+                      <button className="secondary" onClick={openGeneratedPdf}>
+                        <FileText size={18} /> Open PDF
+                      </button>
+                      <button className="secondary" onClick={shareGeneratedPdf}>
+                        <Share2 size={18} /> Share PDF
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
