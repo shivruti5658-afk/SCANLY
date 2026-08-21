@@ -990,13 +990,6 @@ function App() {
                       )}
                     </button>
                   )}
-                  <button
-                    className="finish"
-                    disabled={!pages.length}
-                    onClick={finishCapture}
-                  >
-                    <Check size={18} /> Finish
-                  </button>
                 </div>
               </div>
               <video ref={video} autoPlay playsInline muted />
@@ -1017,6 +1010,14 @@ function App() {
                   </small>
                 </div>
               )}
+              <button
+                className="finish camera-finish"
+                disabled={!pages.length}
+                onClick={finishCapture}
+              >
+                <Check size={18} />
+                <span>Finish</span>
+              </button>
               <div className="capture-bottom">
                 <button
                   className="shutter"

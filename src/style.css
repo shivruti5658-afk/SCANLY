@@ -147,3 +147,11 @@
  .image-tools .reset-crop{font-size:10px;padding:7px 3px;gap:3px}
  .filename-box small{font-size:10px}
 }
+
+/* Primary completion action on the camera screen */
+.camera-finish{position:absolute;right:max(20px,env(safe-area-inset-right));bottom:max(26px,env(safe-area-inset-bottom));z-index:5;min-height:48px;padding:0 18px;border:1px solid rgba(255,255,255,.38)!important;border-radius:16px;background:linear-gradient(135deg,#6d82ff 0%,#4263eb 52%,#334bc3 100%)!important;color:#fff;font:800 14px/1 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.01em;display:inline-flex;align-items:center;gap:8px;box-shadow:0 12px 28px rgba(31,52,150,.42),inset 0 1px rgba(255,255,255,.3);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}
+.camera-finish svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
+.camera-finish:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 17px 34px rgba(31,52,150,.5),inset 0 1px rgba(255,255,255,.34)}
+.camera-finish:not(:disabled):active{transform:translateY(0) scale(.97)}
+.camera-finish:disabled{background:rgba(29,37,60,.8)!important;border-color:rgba(255,255,255,.15)!important;color:rgba(255,255,255,.5);box-shadow:none;cursor:not-allowed}
+@media(max-width:520px){.camera-finish{right:16px;bottom:max(22px,env(safe-area-inset-bottom));min-height:46px;padding:0 15px;border-radius:14px;font-size:13px}}
