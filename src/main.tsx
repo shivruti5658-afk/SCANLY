@@ -142,7 +142,7 @@ function App(){
  }
 
  return <div className="app"><header><div className="brand"><img src={logo} alt="Scanly"/></div><span className="badge">Offline scanner</span></header><main>
- {!scanning&&!editing&&<section className="hero"><div><p className="eyebrow">MULTI-PAGE DOCUMENT SCANNER</p><h1>Capture everything first. Edit afterward.</h1><p className="sub">Fast multi-page scanning with visual crop controls and clean PDF export.</p><div className="actions"><button className="primary" onClick={openCamera}><Camera size={20}/> Start scanning</button><label className="secondary"><ImageIcon size={19}/> Add images<input type="file" accept="image/*" multiple onChange={upload}/></label></div></div><div className="hero-card"><FileText size={42}/><strong>Batch document scanner</strong><span>Everything stays on your device.</span></div></section>}
+ {!scanning&&!editing&&<section className="hero"><div><img className="home-logo" src={logo} alt="Scanly"/><p className="eyebrow">MULTI-PAGE DOCUMENT SCANNER</p><h1>Capture everything first. Edit afterward.</h1><p className="sub">Fast multi-page scanning with visual crop controls and clean PDF export.</p><div className="actions"><button className="primary" onClick={openCamera}><Camera size={20}/> Start scanning</button><label className="secondary"><ImageIcon size={19}/> Add images<input type="file" accept="image/*" multiple onChange={upload}/></label></div></div><div className="hero-card"><FileText size={42}/><strong>Batch document scanner</strong><span>Everything stays on your device.</span></div></section>}
 
  {editing&&!scanning&&current&&<section className="editor">
   <div className="editor-head compact-editor-head">
